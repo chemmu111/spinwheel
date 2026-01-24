@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes spin-blur {
+  0% {
+    transform: rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(180deg) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotateY(360deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes vending-drop {
+  0% {
+    transform: translateY(-500px) rotateZ(0deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) rotateZ(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(168, 85, 247, 0.8);
+  }
+}
+
+@keyframes bounce-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes flip-card {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(180deg);
+  }
+}
+
+@keyframes slide-in-top {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-bottom {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.animate-spin-blur {
+  animation: spin-blur 2s ease-in-out;
+}
+
+.animate-vending-drop {
+  animation: vending-drop 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-confetti {
+  animation: confetti-fall 3s ease-in forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bounce-scale {
+  animation: bounce-scale 0.6s ease-in-out;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-flip-card {
+  animation: flip-card 0.6s ease-in-out;
+}
+
+.animate-slide-in-top {
+  animation: slide-in-top 0.6s ease-out;
+}
+
+.animate-slide-out-bottom {
+  animation: slide-out-bottom 0.6s ease-in;
+}
