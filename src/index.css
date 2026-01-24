@@ -8,8 +8,8 @@
     opacity: 1;
   }
   50% {
-    transform: rotateY(180deg) scale(0.8);
-    opacity: 0.7;
+    transform: rotateY(180deg) scale(0.95);
+    opacity: 0.8;
   }
   100% {
     transform: rotateY(360deg) scale(1);
@@ -19,35 +19,35 @@
 
 @keyframes vending-drop {
   0% {
-    transform: translateY(-500px) rotateZ(0deg);
+    transform: translateY(-200px);
     opacity: 0;
   }
-  60% {
+  70% {
     opacity: 1;
   }
   100% {
-    transform: translateY(0) rotateZ(0deg);
+    transform: translateY(0);
     opacity: 1;
   }
 }
 
 @keyframes confetti-fall {
   0% {
-    transform: translateY(-100vh) rotate(0deg);
+    transform: translateY(-50px) rotate(0deg);
     opacity: 1;
   }
   100% {
-    transform: translateY(100vh) rotate(720deg);
+    transform: translateY(80vh) rotate(360deg);
     opacity: 0;
   }
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(168, 85, 247, 0.8);
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
   }
 }
 
@@ -56,19 +56,16 @@
     transform: scale(1);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
 }
 
-@keyframes shake {
+@keyframes subtle-pulse {
   0%, 100% {
-    transform: translateX(0);
+    opacity: 1;
   }
-  25% {
-    transform: translateX(-10px);
-  }
-  75% {
-    transform: translateX(10px);
+  50% {
+    opacity: 0.8;
   }
 }
 
@@ -104,15 +101,15 @@
 }
 
 .animate-spin-blur {
-  animation: spin-blur 2s ease-in-out;
+  animation: spin-blur 1.8s ease-in-out;
 }
 
 .animate-vending-drop {
-  animation: vending-drop 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  animation: vending-drop 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .animate-confetti {
-  animation: confetti-fall 3s ease-in forwards;
+  animation: confetti-fall 2.5s ease-out forwards;
 }
 
 .animate-pulse-glow {
@@ -120,7 +117,11 @@
 }
 
 .animate-bounce-scale {
-  animation: bounce-scale 0.6s ease-in-out;
+  animation: bounce-scale 0.4s ease-in-out;
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 2s ease-in-out infinite;
 }
 
 .animate-shake {
