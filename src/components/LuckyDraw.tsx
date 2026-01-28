@@ -26,7 +26,9 @@ export function LuckyDraw() {
 
     if (allStudents) {
       setStudents(allStudents);
-      const winnersList = allStudents.filter(s => s.is_winner);
+      const winnersList = allStudents
+        .filter(s => s.is_winner)
+        .sort((a, b) => (a.win_spin_number || 0) - (b.win_spin_number || 0));
       setWinners(winnersList);
       setTotalSpins(winnersList.length);
     }
@@ -69,12 +71,14 @@ export function LuckyDraw() {
 
   const selectWinner = async (nonWinners: Student[]) => {
     const winner = nonWinners[Math.floor(Math.random() * nonWinners.length)];
+    const nextSpinNumber = totalSpins + 1;
 
     const { error } = await supabase
       .from('students')
       .update({
         is_winner: true,
-        won_at: new Date().toISOString()
+        won_at: new Date().toISOString(),
+        win_spin_number: nextSpinNumber
       })
       .eq('id', winner.id);
 
@@ -236,14 +240,14 @@ export function LuckyDraw() {
             </div>
 
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {winners.map((winner, index) => (
+              {winners.map((winner) => (
                 <div
                   key={winner.id}
                   className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-2 border border-yellow-300/50"
                 >
                   <div className="flex items-center justify-center">
                     <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center font-bold text-xs text-gray-900 mb-2">
-                      {index + 1}
+                      {winner.win_spin_number}
                     </div>
                   </div>
                   <img

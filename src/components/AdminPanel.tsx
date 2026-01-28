@@ -210,7 +210,8 @@ export function AdminPanel() {
         .from('students')
         .update({
           is_winner: false,
-          won_at: null
+          won_at: null,
+          win_spin_number: null
         })
         .eq('is_winner', true);
 
