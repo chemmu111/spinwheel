@@ -55,6 +55,8 @@ export function AdminPanel() {
     return null;
   };
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -80,25 +82,35 @@ export function AdminPanel() {
     try {
       let photoUrl = photoPreview;
 
+      const getFileExt = (file: File) => {
+        const name = file.name;
+        const lastDot = name.lastIndexOf('.');
+        return lastDot === -1 ? 'jpg' : name.substring(lastDot + 1);
+      };
+
       if (editingId) {
+        // Edit Mode - No count check needed
         const student = students.find(s => s.id === editingId);
         if (!student) throw new Error('Student not found');
 
         if (photo) {
-          const fileExt = photo.name.split('.').pop();
-          const fileName = `${student.coupon_number}-${Date.now()}.${fileExt}`;
+          const fileExt = getFileExt(photo);
+          const fileName = `photos/${Date.now()}-${student.coupon_number}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
-            .from('student-photos')
-            .upload(fileName, photo);
+            .from('students')
+            .upload(fileName, photo, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
           if (uploadError) throw uploadError;
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('student-photos')
+          const { data } = supabase.storage
+            .from('students')
             .getPublicUrl(fileName);
 
-          photoUrl = publicUrl;
+          photoUrl = data.publicUrl;
         } else {
           photoUrl = student.photo_url;
         }
@@ -109,13 +121,26 @@ export function AdminPanel() {
             name,
             phone,
             photo_url: photoUrl
-          })
+          } as any)
           .eq('id', editingId);
 
         if (updateError) throw updateError;
         setSuccess('Student updated successfully!');
         setEditingId(null);
       } else {
+        // Add Mode - Check count first
+        const { count, error: countError } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true });
+
+        if (countError) throw countError;
+
+        if (count !== null && count >= 31) {
+          setError('Maximum 31 students allowed!');
+          setLoading(false);
+          return;
+        }
+
         const nextCouponNumber = getNextCouponNumber();
         if (!nextCouponNumber) {
           setError('No coupon numbers available!');
@@ -125,17 +150,20 @@ export function AdminPanel() {
 
         if (!photo) throw new Error('Photo required');
 
-        const fileExt = photo.name.split('.').pop();
-        const fileName = `${nextCouponNumber}-${Date.now()}.${fileExt}`;
+        const fileExt = getFileExt(photo);
+        const fileName = `photos/${Date.now()}-${nextCouponNumber}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('student-photos')
-          .upload(fileName, photo);
+          .from('students')
+          .upload(fileName, photo, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('student-photos')
+        const { data } = supabase.storage
+          .from('students')
           .getPublicUrl(fileName);
 
         const { error: insertError } = await supabase
@@ -144,8 +172,8 @@ export function AdminPanel() {
             coupon_number: nextCouponNumber,
             name,
             phone,
-            photo_url: publicUrl
-          });
+            photo_url: data.publicUrl
+          } as any);
 
         if (insertError) throw insertError;
         setSuccess(`Student added! Coupon #${nextCouponNumber}`);
@@ -157,6 +185,7 @@ export function AdminPanel() {
       setPhotoPreview(null);
       loadStudents();
     } catch (err) {
+      console.error(err);
       setError(err instanceof Error ? err.message : 'Failed to save student');
     } finally {
       setLoading(false);
@@ -194,6 +223,7 @@ export function AdminPanel() {
         .eq('id', id);
 
       if (error) throw error;
+
       setSuccess('Student deleted!');
       loadStudents();
     } catch (err) {
@@ -212,7 +242,7 @@ export function AdminPanel() {
           is_winner: false,
           won_at: null,
           win_spin_number: null
-        })
+        } as any)
         .eq('is_winner', true);
 
       if (error) throw error;

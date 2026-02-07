@@ -9,6 +9,7 @@ export function LuckyDraw() {
   const [currentWinner, setCurrentWinner] = useState<Student | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
+  const [isCelebrating, setIsCelebrating] = useState(false);
   const [totalSpins, setTotalSpins] = useState(0);
   const [confetti, setConfetti] = useState<Array<{ id: number; left: number; delay: number }>>([]);
 
@@ -18,6 +19,7 @@ export function LuckyDraw() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load data from Supabase
   const loadData = async () => {
     const { data: allStudents } = await supabase
       .from('students')
@@ -27,8 +29,9 @@ export function LuckyDraw() {
     if (allStudents) {
       setStudents(allStudents);
       const winnersList = allStudents
-        .filter(s => s.is_winner)
+        .filter(s => s.is_winner && s.win_spin_number)
         .sort((a, b) => (a.win_spin_number || 0) - (b.win_spin_number || 0));
+
       setWinners(winnersList);
       setTotalSpins(winnersList.length);
     }
@@ -41,11 +44,25 @@ export function LuckyDraw() {
       delay: Math.random() * 0.3
     }));
     setConfetti(confettiPieces);
-    setTimeout(() => setConfetti([]), 2500);
+
+    // Stop confetti after 5 seconds to match celebration time
+    setTimeout(() => setConfetti([]), 5000);
   };
 
   const handleSpin = async () => {
-    if (totalSpins >= 10 || spinning) return;
+    // Prevent spin if max reached or already spinning or celebrating
+    if (totalSpins >= 10 || spinning || celebrating || isCelebrating) return;
+
+    // Check strict DB state before spinning
+    const { count } = await supabase
+      .from('students')
+      .select('*', { count: 'exact', head: true })
+      .filter('is_winner', 'eq', true);
+
+    if (count !== null && count >= 10) {
+      setTotalSpins(count); // Sync state
+      return;
+    }
 
     const nonWinners = students.filter(s => !s.is_winner);
     if (nonWinners.length === 0) return;
@@ -53,7 +70,7 @@ export function LuckyDraw() {
     setSpinning(true);
     setCurrentWinner(null);
 
-    const spinDuration = 2400;
+    const spinDuration = 3000; // 3 seconds spin
     const interval = 80;
     let elapsed = 0;
 
@@ -64,14 +81,44 @@ export function LuckyDraw() {
 
       if (elapsed >= spinDuration) {
         clearInterval(spinInterval);
-        selectWinner(nonWinners);
+        performWinnerSelection();
       }
     }, interval);
   };
 
-  const selectWinner = async (nonWinners: Student[]) => {
-    const winner = nonWinners[Math.floor(Math.random() * nonWinners.length)];
-    const nextSpinNumber = totalSpins + 1;
+  const performWinnerSelection = async () => {
+    // refetch to ensure we don't pick a winner who just won in another session (race condition check)
+    const { data: latestStudents } = await supabase
+      .from('students')
+      .select('*');
+
+    if (!latestStudents) {
+      setSpinning(false);
+      return;
+    }
+
+    const availableCandidates = latestStudents.filter(s => !s.is_winner);
+    if (availableCandidates.length === 0) {
+      setSpinning(false);
+      return;
+    }
+
+    const winner = availableCandidates[Math.floor(Math.random() * availableCandidates.length)];
+
+    // Get current max spin number from DB to ensure sequence
+    const { data: currentWinners } = await supabase
+      .from('students')
+      .select('win_spin_number')
+      .eq('is_winner', true)
+      .order('win_spin_number', { ascending: false })
+      .limit(1);
+
+    const nextSpinNumber = (currentWinners?.[0]?.win_spin_number || 0) + 1;
+
+    if (nextSpinNumber > 10) {
+      setSpinning(false);
+      return;
+    }
 
     const { error } = await supabase
       .from('students')
@@ -79,20 +126,32 @@ export function LuckyDraw() {
         is_winner: true,
         won_at: new Date().toISOString(),
         win_spin_number: nextSpinNumber
-      })
+      } as any)
       .eq('id', winner.id);
 
     if (!error) {
       setCurrentWinner(winner);
       setSpinning(false);
       setCelebrating(true);
+      setIsCelebrating(true);
       createConfetti();
 
+      // Refresh local data to show new winner in list
+      loadData();
+
+      // Celebration timer - 5 seconds
       setTimeout(() => {
         setCelebrating(false);
-      }, 4500);
-
-      loadData();
+        setIsCelebrating(false);
+        // Auto-trigger next spin if not finished
+        if (nextSpinNumber < 10) {
+          // We use a small timeout to allow state to settle
+          setTimeout(() => document.getElementById('spin-button')?.click(), 500);
+        }
+      }, 5000);
+    } else {
+      setSpinning(false);
+      console.error("Error updating winner", error);
     }
   };
 
@@ -176,7 +235,9 @@ export function LuckyDraw() {
                       </div>
 
                       <div className="mb-4">
-                        <p className="text-xs text-purple-300 font-bold mb-1 uppercase tracking-wide">Winner</p>
+                        <p className="text-xs text-purple-300 font-bold mb-1 uppercase tracking-wide">
+                          Winner #{currentWinner.win_spin_number}
+                        </p>
                         <p className="text-3xl md:text-4xl font-black text-white">
                           {currentWinner.name}
                         </p>
@@ -205,18 +266,18 @@ export function LuckyDraw() {
 
         <div className="text-center mb-8">
           <button
+            id="spin-button"
             onClick={handleSpin}
-            disabled={!canSpin}
-            className={`px-12 py-4 rounded-xl font-bold text-2xl transition-all transform ${
-              canSpin
-                ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-300 hover:to-orange-300 text-gray-900 hover:shadow-lg active:scale-95 border border-yellow-600/50 animate-pulse-glow'
-                : 'bg-gray-500 text-gray-700 cursor-not-allowed opacity-50'
-            }`}
+            disabled={!canSpin || celebrating}
+            className={`px-12 py-4 rounded-xl font-bold text-2xl transition-all transform ${!canSpin || celebrating
+              ? 'bg-gray-500 text-gray-700 cursor-not-allowed opacity-50'
+              : 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-300 hover:to-orange-300 text-gray-900 hover:shadow-lg active:scale-95 border border-yellow-600/50 animate-pulse-glow'
+              }`}
           >
             {spinning ? (
               <span className="animate-spin-blur inline-block">SPINNING...</span>
             ) : totalSpins >= 10 ? (
-              '✓ DRAW COMPLETE'
+              'All winners selected 🎉'
             ) : (
               '🎰 SPIN'
             )}
