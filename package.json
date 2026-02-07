@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "start": "vite preview"
+    "start": "vite preview --host"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
